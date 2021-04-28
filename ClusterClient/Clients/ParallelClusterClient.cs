@@ -13,9 +13,30 @@ namespace ClusterClient.Clients
         {
         }
 
-        public override Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
+        public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
         {
-            throw new NotImplementedException();
+            var tasks = ReplicaAddresses.Select(async address =>
+            {
+                var webRequest = CreateRequest($"{address}?query={query}");
+                return await ProcessRequestAsync(webRequest);
+            });
+            var resultTask = WhenAnyCompleted(tasks.ToHashSet());
+            await Task.WhenAny(resultTask, Task.Delay(timeout));
+
+            if (!resultTask.IsCompleted) throw new TimeoutException();
+            return resultTask.Result.Result;
+        }
+
+        protected async Task<Task<T>> WhenAnyCompleted<T>(HashSet<Task<T>> tasks)
+        {
+            while (tasks.Any())
+            {
+                var completed = await Task.WhenAny(tasks);
+                if (completed.Status == TaskStatus.RanToCompletion) return completed;
+                tasks.Remove(completed);
+            }
+
+            throw new Exception("Nothing was completed, and I don't know how to fault task properly");
         }
 
         protected override ILog Log => LogManager.GetLogger(typeof(ParallelClusterClient));

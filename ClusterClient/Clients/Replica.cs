@@ -6,7 +6,7 @@ namespace ClusterClient.Clients
 {
 	public class Replica
 	{
-		public string Url;
+		public readonly string Url;
 
 		public TimeSpan AverageResponseTime =>
 			responseTimes.Count > 0 ? totalResponseTimeInWindow / responseTimes.Count : TimeSpan.Zero;

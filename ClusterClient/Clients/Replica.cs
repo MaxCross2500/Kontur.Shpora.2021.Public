@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace ClusterClient.Clients
 {
@@ -28,6 +29,15 @@ namespace ClusterClient.Clients
 				totalResponseTimeInWindow += newResponse;
 				while (responseTimes.Count > window) totalResponseTimeInWindow -= responseTimes.Dequeue();
 			}
+		}
+
+		public void UpdateResponseTimeLocked(TimeSpan newResponse, ReaderWriterLockSlim rwlock)
+		{
+			rwlock.EnterWriteLock();
+			responseTimes.Enqueue(newResponse);
+			totalResponseTimeInWindow += newResponse;
+			while (responseTimes.Count > window) totalResponseTimeInWindow -= responseTimes.Dequeue();
+			rwlock.ExitWriteLock();
 		}
 	}
 }

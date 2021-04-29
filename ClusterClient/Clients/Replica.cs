@@ -1,21 +1,33 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace ClusterClient.Clients
 {
-	class Replica
+	public class Replica
 	{
 		public string Url;
-		public int ResponseCount = 0;
-		public TimeSpan AverageResponseTime = TimeSpan.Zero;
 
-		public Replica(string url)
+		public TimeSpan AverageResponseTime =>
+			responseTimes.Count > 0 ? totalResponseTimeInWindow / responseTimes.Count : TimeSpan.Zero;
+
+		private readonly int window;
+		private readonly Queue<TimeSpan> responseTimes = new();
+		private TimeSpan totalResponseTimeInWindow = TimeSpan.Zero;
+
+		public Replica(string url, int window = 10)
 		{
 			Url = url;
+			this.window = window;
 		}
 
 		public void UpdateResponseTime(TimeSpan newResponse)
 		{
-			AverageResponseTime = (AverageResponseTime * ResponseCount + newResponse) / ++ResponseCount;
+			lock (responseTimes)
+			{
+				responseTimes.Enqueue(newResponse);
+				totalResponseTimeInWindow += newResponse;
+				while (responseTimes.Count > window) totalResponseTimeInWindow -= responseTimes.Dequeue();
+			}
 		}
 	}
 }

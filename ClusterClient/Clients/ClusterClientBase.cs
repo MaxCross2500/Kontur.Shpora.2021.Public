@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using log4net;
 
@@ -11,6 +14,7 @@ namespace ClusterClient.Clients
     public abstract class ClusterClientBase
     {
         protected string[] ReplicaAddresses { get; set; }
+        protected ReaderWriterLockSlim rwlock = new();
 
         protected ClusterClientBase(string[] replicaAddresses)
         {
@@ -46,7 +50,7 @@ namespace ClusterClient.Clients
             
             var result = await ProcessRequestAsync(webRequest);
             stopwatch.Stop();
-            replica.UpdateResponseTime(stopwatch.Elapsed);
+            replica.UpdateResponseTimeLocked(stopwatch.Elapsed, rwlock);
             
             return result;
         }

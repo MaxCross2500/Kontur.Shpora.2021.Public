@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using log4net;
 
@@ -26,17 +24,14 @@ namespace ClusterClient.Clients
             
             foreach (var replica in orderedReplicas)
             {
-                var webRequest = CreateRequest($"{replica.Url}?query={query}");
-                
                 var stopwatch = Stopwatch.StartNew();
-                var webRequestTask = ProcessRequestAsync(webRequest);
+                var webRequestTask = ProcessReplicaRequestAsync(replica, query);
                 
                 await Task.WhenAny(webRequestTask, Task.Delay(timeLeft / replicasLeft--));
                 stopwatch.Stop();
                 timeLeft -= stopwatch.Elapsed;
-                if (webRequestTask.Status != TaskStatus.RanToCompletion) continue;
+                if (!webRequestTask.IsCompletedSuccessfully) continue;
                 
-                replica.UpdateResponseTime(stopwatch.Elapsed);
                 return webRequestTask.Result;
             }
 

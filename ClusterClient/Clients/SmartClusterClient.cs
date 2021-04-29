@@ -19,7 +19,7 @@ namespace ClusterClient.Clients
 
         public override async Task<string> ProcessRequestAsync(string query, TimeSpan timeout)
         {
-            var orderedReplicas = replicas.OrderBy(replica => replica.AverageResponseTime).ToArray();
+            var orderedReplicas = OrderReplicas(replicas);
             // var orderedReplicas = replicas;
             
             var replicasLeft = orderedReplicas.Length;

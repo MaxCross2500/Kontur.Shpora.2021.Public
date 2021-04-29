@@ -38,5 +38,17 @@ namespace ClusterClient.Clients
             Log.InfoFormat("Response from {0} received in {1} ms", request.RequestUri, timer.ElapsedMilliseconds);
             return result;
         }
+        
+        protected async Task<string> ProcessReplicaRequestAsync(Replica replica, string query)
+        {
+            var stopwatch = Stopwatch.StartNew();
+            var webRequest = CreateRequest($"{replica.Url}?query={query}");
+            
+            var result = await ProcessRequestAsync(webRequest);
+            stopwatch.Stop();
+            replica.UpdateResponseTime(stopwatch.Elapsed);
+            
+            return result;
+        }
     }
 }

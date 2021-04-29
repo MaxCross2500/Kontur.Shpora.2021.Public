@@ -54,5 +54,13 @@ namespace ClusterClient.Clients
             
             return result;
         }
+
+        protected Replica[] OrderReplicas(IEnumerable<Replica> replicas)
+        {
+            rwlock.EnterReadLock();
+            var result = replicas.OrderBy(replica => replica.AverageResponseTime).ToArray();
+            rwlock.ExitReadLock();
+            return result;
+        }
     }
 }

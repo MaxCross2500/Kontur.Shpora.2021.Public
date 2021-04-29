@@ -14,7 +14,7 @@ namespace ClusterClient.Clients
     public abstract class ClusterClientBase
     {
         protected string[] ReplicaAddresses { get; set; }
-        protected ReaderWriterLockSlim rwlock = new();
+        private readonly ReaderWriterLockSlim rwlock = new();
 
         protected ClusterClientBase(string[] replicaAddresses)
         {

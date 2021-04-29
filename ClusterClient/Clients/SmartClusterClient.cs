@@ -29,41 +29,24 @@ namespace ClusterClient.Clients
             
             foreach (var replica in orderedReplicas)
             {
-                var webRequest = CreateRequest($"{replica.Url}?query={query}");
-                
                 var stopwatch = Stopwatch.StartNew();
-                webRequestTasks.Add(TryProcessRequestAsync(webRequest));
-                var webRequestTask = Task.WhenAny(webRequestTasks);
                 
-                await Task.WhenAny(webRequestTask, Task.Delay(timeLeft / replicasLeft--));
+                webRequestTasks.Add(ProcessReplicaRequestAsync(replica, query));
+                var anyRequestTask = Task.WhenAny(webRequestTasks);
+                
+                await Task.WhenAny(anyRequestTask, Task.Delay(timeLeft / replicasLeft--));
                 stopwatch.Stop();
                 timeLeft -= stopwatch.Elapsed;
-                if (webRequestTask.Status != TaskStatus.RanToCompletion || webRequestTask.Result.Result == null)
-                {
-                    if (webRequestTask.Status == TaskStatus.RanToCompletion && webRequestTask.Result.Result == null)
-                        webRequestTasks.Remove(webRequestTask.Result);
-                    continue;
-                }
-
-                webRequestTasks.Remove(webRequestTask.Result);
-                replica.UpdateResponseTime(stopwatch.Elapsed);
                 
-                return webRequestTask.Result.Result;
+                if (!anyRequestTask.IsCompleted) continue;
+                
+                webRequestTasks.Remove(anyRequestTask.Result);
+                if (anyRequestTask.Result.IsFaulted) continue;
+
+                return anyRequestTask.Result.Result;
             }
             
             throw new TimeoutException();
-        }
-
-        protected async Task<string> TryProcessRequestAsync(WebRequest request)
-        {
-            try
-            {
-                return await ProcessRequestAsync(request);
-            }
-            catch
-            {
-                return null;
-            }
         }
 
         protected override ILog Log => LogManager.GetLogger(typeof(SmartClusterClient));
